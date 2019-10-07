@@ -123,7 +123,32 @@ public:
 		std::reverse(first_number_reversed.begin(), first_number_reversed.end());
 		return first_number_reversed;
 	}
-	
+	[[nodiscard]] unsigned_big_integer div(size_t n) const
+	{
+		if (n == 0)
+			throw std::exception();
+		if (n == 1)
+			return *this;
+
+		std::string ans, number = this->_value;
+		uint32_t idx = 0;
+		uint32_t temp = number[idx] - '0';
+		while (temp < n)
+			temp = temp * 10 + (number[++idx] - '0');
+
+		while (number.size() > idx)
+		{
+			ans.push_back(temp / n + '0');
+
+			temp = (temp % n) * 10 + number[++idx] - '0';
+		}
+
+		if (ans.length() == 0)
+			return static_cast<std::string>("0");
+
+		return ans;
+	}
+
 	[[nodiscard]] std::string to_string() const
 	{
 		return  this->_value;
