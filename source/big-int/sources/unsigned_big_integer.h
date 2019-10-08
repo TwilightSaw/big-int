@@ -123,6 +123,10 @@ public:
 		std::reverse(first_number_reversed.begin(), first_number_reversed.end());
 		return first_number_reversed;
 	}
+	[[nodiscard]] unsigned_big_integer mul(const unsigned_big_integer& n) const
+	{
+		return {};
+	}
 	[[nodiscard]] unsigned_big_integer div(size_t n) const
 	{
 		if (n == 0)
@@ -148,7 +152,7 @@ public:
 
 		return ans;
 	}
-
+	
 	[[nodiscard]] std::string to_string() const
 	{
 		return  this->_value;
