@@ -1,3 +1,5 @@
+#pragma once
+
 #include <string>
 #include <algorithm>
 
@@ -23,42 +25,52 @@ public:
 
 	[[nodiscard]] unsigned_big_integer sum (const unsigned_big_integer& n) const
 	{
-		std::string first_number_reversed = this->_value;
-		std::reverse(first_number_reversed.begin(), first_number_reversed.end());
+		std::string first_number_copy = this->_value;
+		std::string second_number_copy = n._value;
 
-		std::string second_number_reversed = n._value;
-		std::reverse(second_number_reversed.begin(), second_number_reversed.end());
+		const size_t max_size = std::max(first_number_copy.size(), second_number_copy.size());
+		const size_t min_size = std::min(first_number_copy.size(), second_number_copy.size());
 
-		const size_t max_size = std::max(first_number_reversed.size(), second_number_reversed.size());
-		first_number_reversed.resize(max_size, '0');
-		second_number_reversed.resize(max_size, '0');
-
-		std::string sum; sum.resize(max_size + 1);
-
+		if (first_number_copy.size() < second_number_copy.size())
+			first_number_copy.swap(second_number_copy);
+		
+		std::string sum = first_number_copy;
 		uint8_t carry = 0;
-		for (size_t i = 0; i < max_size; i++)
+		
+		for (size_t i = 0; i < min_size; i++)
 		{
-			char first_symbol = first_number_reversed[i];
-			char second_symbol = second_number_reversed[i];
+			const char first_symbol = first_number_copy[max_size - 1 - i];
+			const char second_symbol = second_number_copy[min_size - 1 - i];
 
-			first_symbol -= '0';
-			second_symbol -= '0';
+			const uint8_t first_symbol_value = first_symbol - '0';
+			const uint8_t second_symbol_value = second_symbol - '0';
 
-			const char symbol_sum = static_cast<char>(first_symbol + second_symbol + carry);
+			const uint8_t symbols_value_sum = static_cast<char>(first_symbol_value + second_symbol_value + carry);
 
-			carry = symbol_sum > 9;
+			carry = symbols_value_sum > 9;
 
-			const char result_symbol = static_cast<char>('0' + symbol_sum % 10);
+			const char result_symbol = static_cast<char>('0' + symbols_value_sum % 10);
 
-			sum[i] = result_symbol;
+			sum[max_size - 1 - i] = result_symbol;
+		}
+
+		for(size_t i = min_size; i < max_size && carry != 0; i++)
+		{
+			const char first_symbol = first_number_copy[max_size - 1 - i];
+
+			const uint8_t first_symbol_value = first_symbol - '0';
+
+			const uint8_t symbol_value_sum = static_cast<char>(first_symbol_value + carry);
+
+			carry = symbol_value_sum > 9;
+
+			const char result_symbol = static_cast<char>('0' + symbol_value_sum % 10);
+
+			sum[max_size - 1 - i] = result_symbol;
 		}
 
 		if (carry != 0)
-			sum.back() = carry + '0';
-		else
-			sum.pop_back();
-		
-		std::reverse(sum.begin(), sum.end());
+			sum.insert(0, 1, carry + '0');
 		
 		return sum;
 	}
@@ -137,6 +149,7 @@ public:
 		std::string ans, number = this->_value;
 		uint32_t idx = 0;
 		uint32_t temp = number[idx] - '0';
+
 		while (temp < n)
 			temp = temp * 10 + (number[++idx] - '0');
 
