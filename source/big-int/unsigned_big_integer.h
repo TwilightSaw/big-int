@@ -27,31 +27,31 @@ public:
 	{
 		std::string first_number_copy = this->_value;
 		std::string second_number_copy = n._value;
-
-		const size_t max_size = std::max(first_number_copy.size(), second_number_copy.size());
-		const size_t min_size = std::min(first_number_copy.size(), second_number_copy.size());
-
+		
 		if (first_number_copy.size() < second_number_copy.size())
 			first_number_copy.swap(second_number_copy);
+
+		const size_t max_size = first_number_copy.size();
+		const size_t min_size = second_number_copy.size();
 		
 		std::string sum = first_number_copy;
 		uint8_t carry = 0;
 		
 		for (size_t i = 0; i < min_size; i++)
 		{
-			const char first_symbol = first_number_copy[max_size - 1 - i];
-			const char second_symbol = second_number_copy[min_size - 1 - i];
+			const char first_symbol = first_number_copy[max_size - i - 1];
+			const char second_symbol = second_number_copy[min_size - i - 1];
 
 			const uint8_t first_symbol_value = first_symbol - '0';
 			const uint8_t second_symbol_value = second_symbol - '0';
 
-			const uint8_t symbols_value_sum = static_cast<char>(first_symbol_value + second_symbol_value + carry);
+			const uint8_t symbols_value_sum = static_cast<uint8_t>(first_symbol_value + second_symbol_value + carry);
 
 			carry = symbols_value_sum > 9;
 
 			const char result_symbol = static_cast<char>('0' + symbols_value_sum % 10);
 
-			sum[max_size - 1 - i] = result_symbol;
+			sum[max_size - i - 1] = result_symbol;
 		}
 
 		for(size_t i = min_size; i < max_size && carry != 0; i++)
@@ -60,7 +60,7 @@ public:
 
 			const uint8_t first_symbol_value = first_symbol - '0';
 
-			const uint8_t symbol_value_sum = static_cast<char>(first_symbol_value + carry);
+			const uint8_t symbol_value_sum = static_cast<uint8_t>(first_symbol_value + carry);
 
 			carry = symbol_value_sum > 9;
 
@@ -76,64 +76,38 @@ public:
 	}
 	[[nodiscard]] unsigned_big_integer sub (const unsigned_big_integer& n) const
 	{
-		struct sub_util
-		{
-			static size_t steal_grade(const std::string& string_number, size_t from_index)
-			{
-				for (size_t i = from_index + 1; i < string_number.size(); i++)
-				{
-					char symbol_value = string_number[i];
-					symbol_value -= '0';
+		std::string first_number_copy = this->_value;
+		std::string second_number_copy = n._value;
 
-					if (symbol_value != 0)
-						return i;
-				}
-
-				return 0;
-			}
-		};
+		if (first_number_copy.size() < second_number_copy.size()
+			|| (first_number_copy.size() == second_number_copy.size() && 
+			    first_number_copy.front() < second_number_copy.front()))
+			throw std::exception();
 		
-		std::string first_number_reversed = this->_value;
-		std::reverse(first_number_reversed.begin(), first_number_reversed.end());
+		if (first_number_copy.size() < second_number_copy.size())
+			first_number_copy.swap(second_number_copy);
 
-		std::string second_number_reversed = n._value;
-		std::reverse(second_number_reversed.begin(), second_number_reversed.end());
+		const size_t max_size = first_number_copy.size();
+		const size_t min_size = second_number_copy.size();
 
-		const size_t max_size = std::max(first_number_reversed.size(), second_number_reversed.size());
-		first_number_reversed.resize(max_size, '0');
-		second_number_reversed.resize(max_size, '0');
-
-		for(size_t i = 0; i < max_size; i++)
+		for(size_t i = 0; i < min_size; i++)
 		{
-			const char first_symbol = first_number_reversed[i];
-			const char second_symbol = second_number_reversed[i];
+			const char first_symbol = first_number_copy[max_size - min_size + i];
+			const char second_symbol = second_number_copy[i];
 
-			const int8_t first_symbol_value = static_cast<int8_t>(first_symbol - '0');
-			const int8_t second_symbol_value = static_cast<int8_t>(second_symbol - '0');
+			const uint8_t first_symbol_value = first_symbol - '0';
+			const uint8_t second_symbol_value = second_symbol - '0';
 
-			if(first_symbol_value < second_symbol_value)
-			{
-				const size_t steal_index = sub_util::steal_grade(first_number_reversed, i);
+			const bool first_is_low_then_second = first_symbol_value < second_symbol_value;
+			
+			if(first_is_low_then_second)
+				--first_number_copy[max_size - min_size + i - 1];
 
-				if (steal_index == 0)
-					throw std::exception();
-
-				first_number_reversed[steal_index] -= 1;
-				for (size_t j = steal_index - 1; j > i; j--)
-					first_number_reversed[j] = '9';
-
-				const int8_t new_value = static_cast<char>(10u + first_symbol_value - second_symbol_value);
-				first_number_reversed[i] = new_value + '0';
-			}
-			else
-			{
-				first_number_reversed[i] = first_symbol_value - second_symbol_value + '0';
-			}
+			first_number_copy[max_size - min_size + i] = '0' + first_symbol_value - second_symbol_value + 10 * first_is_low_then_second;
 		}
 
-		align::right(first_number_reversed);
-		std::reverse(first_number_reversed.begin(), first_number_reversed.end());
-		return first_number_reversed;
+		align::right(first_number_copy);
+		return first_number_copy;
 	}
 	[[nodiscard]] unsigned_big_integer mul(const unsigned_big_integer& n) const
 	{
