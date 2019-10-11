@@ -2,6 +2,8 @@
 
 #include <string>
 #include <algorithm>
+#include <vector>
+#include <sstream>
 
 class unsigned_big_integer
 {
@@ -105,13 +107,82 @@ public:
 
 			first_number_copy[max_size - min_size + i] = '0' + first_symbol_value - second_symbol_value + 10 * first_is_low_then_second;
 		}
-
-		align::right(first_number_copy);
+		
 		return first_number_copy;
 	}
 	[[nodiscard]] unsigned_big_integer mul(const unsigned_big_integer& n) const
 	{
-		return {};
+		if (this->is_zero() || n.is_zero())
+			return unsigned_big_integer::zero;
+
+		const size_t len1 = this->_value.size();
+		const size_t len2 = n._value.size();
+
+		// will keep the result number in vector 
+		// in reverse order 
+		std::vector<size_t> result(len1 + len2, 0);
+
+		// Below two indexes are used to find positions 
+		// in result.  
+		size_t i_n1 = 0;
+		size_t i_n2 = 0;
+
+		// Go from right to left in num1 
+		for (int64_t i = len1 - 1; i >= 0; i--)
+		{
+			int64_t carry = 0;
+			const int64_t n1 = this->_value[i] - '0';
+
+			// To shift position to left after every 
+			// multiplication of a digit in num2 
+			i_n2 = 0;
+
+			// Go from right to left in num2              
+			for (int64_t j = len2 - 1; j >= 0; j--)
+			{
+				// Take current digit of second number 
+				const int64_t n2 = n._value[j] - '0';
+
+				// Multiply with current digit of first number 
+				// and add result to previously stored result 
+				// at current position.  
+				const int64_t sum = n1 * n2 + result[i_n1 + i_n2] + carry;
+
+				// Carry for next iteration 
+				carry = sum / 10;
+
+				// Store result 
+				result[i_n1 + i_n2] = sum % 10;
+
+				i_n2++;
+			}
+
+			// store carry in next cell 
+			if (carry > 0)
+				result[i_n1 + i_n2] += carry;
+
+			// To shift position to left after every 
+			// multiplication of a digit in num1. 
+			i_n1++;
+		}
+
+		// ignore '0's from the right 
+		int64_t i = result.size() - 1;
+		while (i >= 0 && result[i] == 0)
+			i--;
+
+		// If all were '0's - means either both or 
+		// one of num1 or num2 were '0' 
+		if (i == -1)
+			return unsigned_big_integer::zero;
+
+		// generate the result string 
+		std::stringstream s;
+
+		while (i >= 0)
+			s << std::to_string(result[i--]);
+
+		return s.str();
 	}
 	[[nodiscard]] unsigned_big_integer div(size_t n) const
 	{
@@ -135,21 +206,133 @@ public:
 		}
 
 		if (ans.length() == 0)
-			return static_cast<std::string>("0");
+			return unsigned_big_integer::zero;
 
 		return ans;
+	}
+	[[nodiscard]] unsigned_big_integer div_rem(size_t n, unsigned_big_integer& reminder) const
+	{
+		std::vector<int> vec(this->_value.size());
+		size_t mod = 0;
+
+		for (int i = 0; i < this->_value.size(); i++)
+		{
+			const int digit = this->_value[i] - '0';
+			mod = mod * 10 + digit;
+
+			const int quo = mod / n;
+			vec[i] = quo;
+
+			mod = mod % n;
+		}
+
+		reminder = mod;
+
+		size_t index = 0;
+		for (index = 0; index < vec.size(); index++)
+			if (vec[index] != 0)
+				break;
+
+		std::string q; q.resize(vec.size() - index);
+		for (size_t i = 0; i < q.size(); i++)
+			q[i] = vec[i + index] + '0';
+
+		return q.empty() ? "0" : q;
+	}
+	[[nodiscard]] unsigned_big_integer div16_rem(uint16_t& reminder) const
+	{
+		constexpr uint16_t n = 16;
+		std::vector<int> vec(this->_value.size());
+		uint16_t mod = 0;
+
+		for (int i = 0; i < this->_value.size(); i++)
+		{
+			const int digit = this->_value[i] - '0';
+			mod = mod * 10 + digit;
+
+			const int quo = mod / n;
+			vec[i] = quo;
+
+			mod = mod % n;
+		}
+
+		reminder = mod;
+
+		size_t index = 0;
+		for (index = 0; index < vec.size(); index++)
+			if (vec[index] != 0)
+				break;
+
+		std::string q; q.resize(vec.size() - index);
+		for (size_t i = 0; i < q.size(); i++)
+			q[i] = vec[i + index] + '0';
+
+		return q.empty() ? "0" : q;
+	}
+
+	[[nodiscard]] bool is_zero() const
+	{
+		return this->_value == unsigned_big_integer::zero;
+	}
+	[[nodiscard]] bool is_one() const
+	{
+		return this->_value == unsigned_big_integer::one;
+	}
+	[[nodiscard]] bool is_not_zero() const
+	{
+		return !this->is_zero();
+	}
+	[[nodiscard]] bool is_odd() const
+	{
+		return this->is_even() == false;
+	}
+	[[nodiscard]] bool is_even() const
+	{
+		return this->is_zero() || this->_value.back() % 2 == 0;
+	}
+	
+	[[nodiscard]] unsigned_big_integer pow(size_t power) const
+	{
+		if (power == 0)
+			return unsigned_big_integer::one;
+		if (power == 1)
+			return *this;
+		if (this->is_zero() || this->is_one())
+			return *this;
+
+		unsigned_big_integer exponent = power;
+		unsigned_big_integer result = unsigned_big_integer::one;
+		unsigned_big_integer x = *this;
+
+		while (exponent.is_not_zero())
+		{
+			if (exponent.is_even())
+			{
+				x = x.mul(x);
+				exponent = exponent.div(2);
+			}
+			else
+			{
+				result = result.mul(x);
+				x = x.mul(x);
+				exponent = exponent.sub(unsigned_big_integer::one).div(2);
+			}
+		}
+
+		return result;
 	}
 	
 	[[nodiscard]] std::string to_string() const
 	{
-		return  this->_value;
+		return this->_value;
 	}
 	
 private:
 	std::string _value = "0";
 	inline static const std::string dec_digits = "1234567890";
 	inline static const std::string zero = "0";
-
+	inline static const std::string one = { '1' };
+	
 	struct align
 	{
 		static void right(std::string& number)
